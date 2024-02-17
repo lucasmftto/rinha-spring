@@ -8,12 +8,21 @@ services:
       context: .
       dockerfile: DockerfileApi.dev
     hostname: api01
+    platform: linux/x86_64
     environment:
       - DB_HOSTNAME=db
       - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/rinha
       - SPRING_DATASOURCE_USERNAME=admin
       - SPRING_DATASOURCE_PASSWORD=123
+      - SPRING_THREADS_VIRTUAL_ENABLED=true
+      - SPRING_THREADS_VIRTUAL_ENABLED_MANUALLY=false
+      - SPRING_RESOURCES_CHAIN_ENABLED=true
+      - JAVA_OPTS="-Xms500m -Xmx1000m"
 
+    ulimits:
+      nofile:
+        soft: 1000000
+        hard: 1000000
     # Não é necessário expor qualquer porta além da porta do load balancer,
     # mas é comum as pessoas o fazerem para testarem suas APIs e conectarem
     # ao banco de dados na fase de desenvolvimento.
@@ -25,22 +34,33 @@ services:
       resources:
         limits:
           cpus: "0.6"
-          memory: "200MB"
+          memory: "230MB"
 
   api02:
     # Essa sintaxe reusa o que foi declarado em 'api01'.
     <<: *api
     hostname: api02
+    platform: linux/x86_64
     environment:
       - DB_HOSTNAME=db
       - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/rinha
       - SPRING_DATASOURCE_USERNAME=admin
       - SPRING_DATASOURCE_PASSWORD=123
+      - SPRING_THREADS_VIRTUAL_ENABLED=true
+      - SPRING_THREADS_VIRTUAL_ENABLED_MANUALLY=false
+      - SPRING_RESOURCES_CHAIN_ENABLED=true
+      - JAVA_OPTS="-Xms150m -Xmx155m"
+
+    ulimits:
+      nofile:
+        soft: 1000000
+        hard: 1000000
     ports:
       - "8082:8080"
 
   nginx:
     image: nginx:1.21-alpine
+    platform: linux/x86_64
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
@@ -49,11 +69,15 @@ services:
     ports:
       # Obrigatório expor/usar a porta 9999 no load balancer!
       - "9999:9999"
+    ulimits:
+      nofile:
+        soft: 1000000
+        hard: 1000000
     deploy:
       resources:
         limits:
           cpus: "0.17"
-          memory: "10MB"
+          memory: "40MB"
 
   db:
     build: postgres
@@ -75,7 +99,7 @@ services:
           # de memória. A distribuição feita aqui é apenas
           # um exemplo – distribua como quiser.
           cpus: "0.13"
-          memory: "140MB"
+          memory: "100MB"
 
 # O uso do modo `bridge` deve ser adequado à carga que será usada no teste.
 # A edição anterior se beneficiou do modo host pois o volume de requisições
